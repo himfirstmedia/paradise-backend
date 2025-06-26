@@ -1,11 +1,14 @@
 # Stage 1: Build the application
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Install build tools
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -17,26 +20,39 @@ RUN npx prisma generate
 RUN npx tailwindcss -i ./src/styles/input.css -o ./public/css/styles.css
 
 # Stage 2: Production image
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install production dependencies only
-COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y python3 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy built assets from builder stage
+# Install production dependencies
+COPY package.json pnpm-lock.yaml* ./
+RUN npm install -g pnpm@9 && pnpm install --prod --frozen-lockfile
+
+# Copy built assets
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && adduser -S -u 1001 nodejs
+# Create non-root user
+RUN useradd -m -u 1001 nodejs
 USER nodejs
 
-# Expose port (default Express port)
 EXPOSE 3000
 
-# Start the application
 CMD ["npm", "run", "dev"]

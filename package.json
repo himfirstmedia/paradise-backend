@@ -90,6 +90,7 @@
     "connect-livereload": "^0.6.1",
     "livereload": "^0.9.3",
     "prisma": "^6.10.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

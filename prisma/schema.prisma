@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model feedback {
+  id      Int    @id @default(autoincrement())
+  message String
+  userId  Int
+  taskId  Int
+  type    String
+  task    task   @relation(fields: [taskId], references: [id], map: "Feedback_taskId_fkey")
+  user    user   @relation(fields: [userId], references: [id], map: "Feedback_userId_fkey")
+
+  @@index([taskId], map: "Feedback_taskId_fkey")
+  @@index([userId], map: "Feedback_userId_fkey")
+}
+
+model task {
+  id          Int            @id @default(autoincrement())
+  name        String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  progress    String?
+  status      String?
+  userId      Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  instruction String?
+  category    task_category?
+  feedback    feedback[]
+  user        user?          @relation(fields: [userId], references: [id], map: "Task_userId_fkey")
+
+  @@index([userId], map: "Task_userId_fkey")
+}
+
+model user {
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique(map: "User_email_key")
+  phone       String
+  gender      user_gender
+  role        user_role
+  city        String
+  state       String
+  zipCode     String
+  image       String?
+  joinedDate  DateTime?
+  leavingDate DateTime?
+  password    String
+  houseId     Int?
+  feedback    feedback[]
+  task        task[]
+  house       house?      @relation(fields: [houseId], references: [id])
+
+  @@index([houseId], map: "user_houseId_fkey")
+}
+
+model scripture {
+  id        Int       @id @default(autoincrement())
+  verse     String
+  scripture String
+  version   String
+  book      String
+  createdAt DateTime?
+  updatedAt DateTime?
+}
+
+model house {
+  id           Int        @id @default(autoincrement())
+  name         user_house
+  abbreviation String
+  capacity     Int
+  users        user[]
+}
+
+enum user_gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum user_role {
+  SUPER_ADMIN
+  ADMIN
+  DIRECTOR
+  RESIDENT_MANAGER
+  FACILITY_MANAGER
+  RESIDENT
+  INDIVIDUAL
+}
+
+enum user_house {
+  LILLIE_LOUISE_WOERMER_HOUSE
+  CAROLYN_ECKMAN_HOUSE
+  ADIMINISTRATION
+}
+
+enum task_category {
+  NORMAL
+  SPECIAL
+}

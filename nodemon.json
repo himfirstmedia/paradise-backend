@@ -1,0 +1,5 @@
+{
+  "watch": ["*.ts", "*.json", "*.js", "*.hbs"],
+  "ext": "ts,json,hbs",
+  "exec": "npx tsx src/index.ts"
+}

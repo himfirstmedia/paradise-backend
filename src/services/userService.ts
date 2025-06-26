@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 
 export const userService = {
-  create: (data: Prisma.userCreateInput) => prisma.user.create({ data }),
+  create: (data: any) => prisma.user.create({ data }),
   findAll: () =>
     prisma.user.findMany({
       include: {

@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y python3 \
 
 # Install production dependencies
 COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm@9 && pnpm install --prod --frozen-lockfile
+RUN npm install -g pnpm@9 && pnpm install
 
 # Copy built assets
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client

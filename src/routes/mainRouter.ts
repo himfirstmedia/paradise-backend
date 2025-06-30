@@ -8,11 +8,18 @@ import scriptureRoutes from "./api/app/scriptureRoutes";
 
 const app = Router();
 
+const apiRouter = Router();
+
+app.use("/api/v1", apiRouter);
+
+apiRouter.use("/houses", houseRoutes);
+apiRouter.use("/users", userRoutes);
+apiRouter.use("/tasks", taskRoutes);
+apiRouter.use("/feedback", feedbackRoutes);
+apiRouter.use("/scriptures", scriptureRoutes);
+
 app.use("/", ServerReanderingRoutes);
-app.use("/api/houses", houseRoutes);
-app.use("/users", userRoutes);
-app.use("/tasks", taskRoutes);
-app.use("/feedback", feedbackRoutes);
-app.use("/scriptures", scriptureRoutes);
+
+
 
 export { app as MainRouter };

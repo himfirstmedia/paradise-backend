@@ -59,12 +59,23 @@ app.use(
 );
 app.use(xss());
 app.use(compression());
+
+const allowedOrigins = [
+  'http://192.168.100.94:8081', 
+  'http://localhost:8081',      
+  '*',                         
+];
+
 app.use(
   cors({
-    origin: config.corsOrigin
-      ? config.corsOrigin
-      : ["*"],
-    // origin: "*",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., mobile apps, Postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );

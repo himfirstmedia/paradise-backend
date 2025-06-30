@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,11 +13,11 @@ model feedback {
   userId  Int
   taskId  Int
   type    String
-  task    task   @relation(fields: [taskId], references: [id], map: "Feedback_taskId_fkey")
-  user    user   @relation(fields: [userId], references: [id], map: "Feedback_userId_fkey")
+  task    task   @relation(fields: [taskId], references: [id], map: "fk_feedback_taskId")
+  user    user   @relation(fields: [userId], references: [id], map: "fk_feedback_userId")
 
-  @@index([taskId], map: "Feedback_taskId_fkey")
-  @@index([userId], map: "Feedback_userId_fkey")
+  @@index([taskId], map: "idx_feedback_taskId")
+  @@index([userId], map: "idx_feedback_userId")
 }
 
 model task {
@@ -34,15 +34,15 @@ model task {
   instruction String?
   category    task_category?
   feedback    feedback[]
-  user        user?          @relation(fields: [userId], references: [id], map: "Task_userId_fkey")
+  user        user?          @relation(fields: [userId], references: [id], map: "fk_task_userId")
 
-  @@index([userId], map: "Task_userId_fkey")
+  @@index([userId], map: "idx_task_userId")
 }
 
 model user {
   id          Int         @id @default(autoincrement())
   name        String
-  email       String      @unique(map: "User_email_key")
+  email       String      @unique(map: "uq_user_email")
   phone       String
   gender      user_gender
   role        user_role
@@ -56,9 +56,9 @@ model user {
   houseId     Int?
   feedback    feedback[]
   task        task[]
-  house       house?      @relation(fields: [houseId], references: [id])
+  house       house?      @relation(fields: [houseId], references: [id], map: "fk_user_houseId")
 
-  @@index([houseId], map: "user_houseId_fkey")
+  @@index([houseId], map: "idx_user_houseId")
 }
 
 model scripture {

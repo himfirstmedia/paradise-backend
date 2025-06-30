@@ -64,6 +64,7 @@ app.use(
     origin: config.corsOrigin
       ? config.corsOrigin
       : ["*"],
+    // origin: "*",
     credentials: true,
   })
 );

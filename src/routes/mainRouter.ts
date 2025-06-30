@@ -10,9 +10,9 @@ const app = Router();
 
 app.use("/", ServerReanderingRoutes);
 app.use("/api/houses", houseRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/tasks", taskRoutes);
-app.use("/api/feedback", feedbackRoutes);
-app.use("/api/scriptures", scriptureRoutes);
+app.use("/users", userRoutes);
+app.use("/tasks", taskRoutes);
+app.use("/feedback", feedbackRoutes);
+app.use("/scriptures", scriptureRoutes);
 
 export { app as MainRouter };

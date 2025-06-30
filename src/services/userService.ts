@@ -1,8 +1,18 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import bcrypt from "bcrypt";
+const SALT_ROUNDS = 10;
 
 export const userService = {
-  create: (data: any) => prisma.user.create({ data }),
+   create: async (data: any) => {
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    return prisma.user.create({
+      data: {
+        ...data,
+        password: hashedPassword,
+      },
+    });
+  },
   findAll: () =>
     prisma.user.findMany({
       include: {

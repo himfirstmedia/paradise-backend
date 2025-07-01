@@ -73,7 +73,7 @@ model scripture {
 
 model house {
   id           Int        @id @default(autoincrement())
-  name         user_house
+  name         String
   abbreviation String
   capacity     Int
   users        user[]
@@ -95,11 +95,6 @@ enum user_role {
   INDIVIDUAL
 }
 
-enum user_house {
-  LILLIE_LOUISE_WOERMER_HOUSE
-  CAROLYN_ECKMAN_HOUSE
-  ADIMINISTRATION
-}
 
 enum task_category {
   NORMAL

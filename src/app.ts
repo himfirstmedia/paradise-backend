@@ -62,6 +62,7 @@ app.use(compression());
 
 const allowedOrigins = [
   'http://192.168.100.94:8081', 
+  "http://himfirstmedia.com",
   'http://localhost:8081',      
   '*',                         
 ];

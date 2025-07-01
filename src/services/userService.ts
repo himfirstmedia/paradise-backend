@@ -54,9 +54,16 @@ export const userService = {
   },
   delete: (id: number) => prisma.user.delete({ where: { id } }),
   login: async (email: string, password: string) => {
-    return prisma.user.findUnique({
-      where: { email, password },
-      include: { task: true, house: true },
-    });
-  },
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { task: true, house: true },
+  });
+
+  if (!user) return null;
+
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  if (!passwordMatch) return null;
+
+  return user;
+},
 };

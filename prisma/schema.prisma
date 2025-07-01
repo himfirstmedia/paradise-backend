@@ -72,10 +72,10 @@ model scripture {
 }
 
 model house {
-  id           Int        @id @default(autoincrement())
-  name         String
+  id           Int    @id @default(autoincrement())
   abbreviation String
   capacity     Int
+  name         String
   users        user[]
 }
 
@@ -94,7 +94,6 @@ enum user_role {
   RESIDENT
   INDIVIDUAL
 }
-
 
 enum task_category {
   NORMAL

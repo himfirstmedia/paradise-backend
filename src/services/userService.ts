@@ -33,6 +33,10 @@ export const userService = {
         throw new Error("User not found");
       }
 
+      console.log("Comparing:", data.oldPassword, "to", user.password);
+      const testMatch = await bcrypt.compare(data.oldPassword, user.password);
+      console.log("Manual comparison result:", testMatch);
+
       const isValid = await bcrypt.compare(data.oldPassword, user.password);
       if (!isValid) {
         throw new Error("Current password is incorrect");
@@ -54,16 +58,16 @@ export const userService = {
   },
   delete: (id: number) => prisma.user.delete({ where: { id } }),
   login: async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { task: true, house: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { task: true, house: true },
+    });
 
-  if (!user) return null;
+    if (!user) return null;
 
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if (!passwordMatch) return null;
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) return null;
 
-  return user;
-},
+    return user;
+  },
 };

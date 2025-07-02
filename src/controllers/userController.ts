@@ -5,8 +5,6 @@ export const userController = {
   login: async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
-    console.log("Login attempt:", { email, password });
-
     const user = await userService.login(email, password);
 
     if (user) {
@@ -39,7 +37,7 @@ export const userController = {
           .status(400)
           .json({ message: "Current password is incorrect." });
       }
-      // Update password
+      
       const updated = await userService.update(userId, { password });
       return res.json(updated);
     }

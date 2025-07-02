@@ -33,9 +33,9 @@ export const userService = {
         throw new Error("User not found");
       }
 
-      console.log("Comparing:", data.oldPassword, "to", user.password);
-      const testMatch = await bcrypt.compare(data.oldPassword, user.password);
-      console.log("Manual comparison result:", testMatch);
+      // console.log("Comparing:", data.oldPassword, "to", user.password);
+      // const testMatch = await bcrypt.compare(data.oldPassword, user.password);
+      // console.log("Manual comparison result:", testMatch);
 
       const isValid = await bcrypt.compare(data.oldPassword, user.password);
       if (!isValid) {
@@ -63,12 +63,9 @@ export const userService = {
       include: { task: true, house: true },
     });
 
-    console.log("Found user:", user);
-
     if (!user) return null;
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    console.log("Password match:", passwordMatch);
 
     if (!passwordMatch) return null;
 

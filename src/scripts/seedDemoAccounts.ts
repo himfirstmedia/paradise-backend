@@ -1,16 +1,18 @@
 import prisma from "../config/prisma";
+import bcrypt from "bcrypt";
+
+const SALT_ROUNDS = 10;
 
 export const seedDemoAccounts = async () => {
   try {
-    // Check if any users exist
     const userCount = await prisma.user.count();
-    
+
     if (userCount > 0) {
       console.log("Users exist - skipping demo account creation");
       return;
     }
 
-    const demoAccounts = [
+    const demoAccountsRaw = [
       {
         name: "Super Admin",
         email: "superadmin@gmail.com",
@@ -20,7 +22,7 @@ export const seedDemoAccounts = async () => {
         city: "My City",
         state: "My State",
         zipCode: "12345",
-        password: "superadmin", 
+        password: "superadmin",
       },
       {
         name: "Director",
@@ -34,6 +36,14 @@ export const seedDemoAccounts = async () => {
         password: "director",
       },
     ];
+
+    // Hash passwords before saving
+    const demoAccounts = await Promise.all(
+      demoAccountsRaw.map(async (account) => ({
+        ...account,
+        password: await bcrypt.hash(account.password, SALT_ROUNDS),
+      }))
+    );
 
     await prisma.$transaction(
       demoAccounts.map((account) => prisma.user.create({ data: account }))

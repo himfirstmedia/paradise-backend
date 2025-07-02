@@ -37,7 +37,6 @@ export const seedDemoAccounts = async () => {
       },
     ];
 
-    // Hash passwords before saving
     const demoAccounts = await Promise.all(
       demoAccountsRaw.map(async (account) => ({
         ...account,

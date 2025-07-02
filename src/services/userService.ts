@@ -26,7 +26,8 @@ export const userService = {
       include: { task: true, house: true },
     }),
   update: async (id: number, data: any) => {
-  const { password, oldPassword, ...otherUpdates } = data;
+  const { password, oldPassword, ...updateData } = data;
+
 
   if (password && oldPassword) {
     const user = await prisma.user.findUnique({ where: { id } });
@@ -36,15 +37,15 @@ export const userService = {
     if (!isMatch) throw new Error("Current password is incorrect");
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    otherUpdates.password = hashedPassword;
+    updateData.password = hashedPassword;
   } else if (password || oldPassword) {
     throw new Error("Both old and new passwords are required to update password.");
   }
 
-  return prisma.user.update({
-    where: { id },
-    data: otherUpdates,
-  });
+    return prisma.user.update({
+      where: { id },
+      data: updateData,
+    });
 },
 
   delete: (id: number) => prisma.user.delete({ where: { id } }),

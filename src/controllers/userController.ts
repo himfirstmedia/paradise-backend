@@ -4,13 +4,18 @@ import { userService } from "../services/userService";
 export const userController = {
   login: async (req: Request, res: Response) => {
     const { email, password } = req.body;
+
+    console.log("Login attempt:", { email, password });
+
     const user = await userService.login(email, password);
+
     if (user) {
       res.json(user);
     } else {
       res.status(404).json({ message: "User not found" });
     }
   },
+
   create: async (req: Request, res: Response) => {
     const user = await userService.create(req.body);
     res.status(201).json(user);

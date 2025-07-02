@@ -63,9 +63,13 @@ export const userService = {
       include: { task: true, house: true },
     });
 
+    console.log("Found user:", user);
+
     if (!user) return null;
 
     const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", passwordMatch);
+
     if (!passwordMatch) return null;
 
     return user;

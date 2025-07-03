@@ -27,12 +27,12 @@ model task {
   endDate     DateTime?
   description String?
   progress    String?
-  status      String?
   userId      Int?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   instruction String?
   category    task_category?
+  status      task_status?
   feedback    feedback[]
   user        user?          @relation(fields: [userId], references: [id], map: "fk_task_userId")
 
@@ -96,6 +96,14 @@ enum user_role {
 }
 
 enum task_category {
-  NORMAL
+  PRIMARY
+  MAINTENANCE
   SPECIAL
+}
+
+enum task_status {
+  PENDING
+  REVIEWING
+  APPROVED
+  REJECTED
 }

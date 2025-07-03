@@ -1,19 +1,34 @@
-import prisma from '../config/prisma';
-import { Prisma, task } from '@prisma/client';
+import prisma from "../config/prisma";
+import { Prisma } from "@prisma/client";
 
 export const taskService = {
-  create: (data: Prisma.taskCreateInput) => prisma.task.create({ data }),
+  create: (data: Prisma.taskCreateInput) => {
+    return prisma.task.create({ data });
+  },
+
   findAll: () => prisma.task.findMany(),
-  findById: (id: number) => prisma.task.findUnique({ where: { id } }),
-  update: async (id: number, data: any) => {
+
+  findById: (id: number) => {
+    return prisma.task.findUnique({ where: { id } });
+  },
+
+  update: async (id: number, data: Partial<Prisma.taskUpdateInput> & { userId?: number | null }) => {
     const { userId, ...rest } = data;
-    let updateData: any = { ...rest };
+    const updateData: Prisma.taskUpdateInput = { ...rest };
+
     if (userId !== undefined) {
       updateData.user = userId === null
         ? { disconnect: true }
         : { connect: { id: userId } };
     }
-    return prisma.task.update({ where: { id }, data: updateData });
+
+    return prisma.task.update({
+      where: { id },
+      data: updateData,
+    });
   },
-  delete: (id: number) => prisma.task.delete({ where: { id } }),
+
+  delete: (id: number) => {
+    return prisma.task.delete({ where: { id } });
+  },
 };

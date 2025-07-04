@@ -3,8 +3,17 @@ import { feedbackService } from '../services/feedbackService';
 
 export const feedbackController = {
   create: async (req: Request, res: Response) => {
-    const user = await feedbackService.create(req.body);
-    res.status(201).json(user);
+    try {
+      const feedback = await feedbackService.create(req.body);
+      res.status(201).json(feedback);
+    } catch (error: any) {
+      if (error.message.includes('required') || 
+          error.message.includes('cannot have')) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
   },
   findAll: async (_: Request, res: Response) => {
     const users = await feedbackService.findAll();

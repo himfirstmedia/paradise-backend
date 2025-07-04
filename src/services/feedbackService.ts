@@ -1,20 +1,26 @@
 import prisma from '../config/prisma';
 
 export const feedbackService = {
-  ccreate: async (data: any) => {
-  const { userId, taskId, ...rest } = data;
-  let createData: any = { ...rest };
+  create: async (data: any) => {
+    const { userId, taskId, type, ...rest } = data;
+    let createData: any = { ...rest, type };
 
-  if (userId !== undefined) {
-    createData.user = { connect: { id: userId } };
-  }
-  if (taskId !== undefined) {
-    createData.task = { connect: { id: taskId } };
-  } else {
-    createData.type = 'Suggestion';
-  }
-  return prisma.feedback.create({ data: createData });
-},
+    if (type === 'Comment' && !taskId) {
+      throw new Error('Selecting a task is required for comments');
+    }
+    if (type === 'Suggestion' && taskId) {
+      throw new Error('Suggestions cannot have a task association');
+    }
+
+    if (userId) {
+      createData.user = { connect: { id: userId } };
+    }
+    if (taskId && type === 'Comment') {
+      createData.task = { connect: { id: taskId } };
+    }
+
+    return prisma.feedback.create({ data: createData });
+  },
 
   findAll: () => prisma.feedback.findMany(),
   findById: (id: number) => prisma.feedback.findUnique({ where: { id } }),

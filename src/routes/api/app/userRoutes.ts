@@ -15,5 +15,7 @@ router.get("/:id", asyncHandler(userController.findById));
 router.put("/:id", asyncHandler(userController.update));
 router.delete("/:id", asyncHandler(userController.delete));
 router.post("/login", asyncHandler(userController.login));
+router.get("/verify-password/:id", asyncHandler(userController.verifyPassword));
+
 
 export default router;

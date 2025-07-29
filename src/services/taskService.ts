@@ -9,10 +9,11 @@ export const taskService = {
   findAll: () => prisma.task.findMany(),
 
   findById: (id: number) => {
+    console.log("🔍 [taskService] findById called with id: ", id);
     return prisma.task.findUnique({ where: { id } });
   },
 
-  update: async (id: number, data: Partial<Prisma.taskUpdateInput> & { userId?: number | null }) => {
+  update: (id: number, data: Partial<Prisma.taskUpdateInput> & { userId?: number | null }) => {
     const { userId, ...rest } = data;
     const updateData: Prisma.taskUpdateInput = { ...rest };
 
@@ -31,4 +32,19 @@ export const taskService = {
   delete: (id: number) => {
     return prisma.task.delete({ where: { id } });
   },
+
+//   findTasksByUserAndDateRange: (userId: number, startDate: Date, endDate: Date) => {
+//   console.log("🔍 [taskService] Finding tasks for user:", userId, "from:", startDate, "to:", endDate);
+
+//   return prisma.task.findMany({
+//     where: {
+//       userId,
+//       startDate: {
+//         gte: startDate,
+//         lte: endDate,
+//       },
+//     },
+//   });
+// },
+
 };

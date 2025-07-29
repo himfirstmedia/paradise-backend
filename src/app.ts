@@ -93,6 +93,9 @@ app.use(
     maxAge: config.env != "development" ? "30d" : "0",
   })
 );
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+
+
 passport.use(localStrategy);
 passport.serializeUser((user: any, done) => {
   done(null, user.id as any);

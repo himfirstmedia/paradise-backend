@@ -33,32 +33,74 @@ model task {
   instruction String?
   category    task_category?
   status      task_status?
+  image       String?
+  choreId     Int?
   feedback    feedback[]
+  chore       chore?         @relation(fields: [choreId], references: [id], map: "fk_task_choreId")
   user        user?          @relation(fields: [userId], references: [id], map: "fk_task_userId")
+  taskLogs    taskLog[]
 
   @@index([userId], map: "idx_task_userId")
+  @@index([choreId], map: "idx_task_choreId")
 }
 
 model user {
-  id          Int         @id @default(autoincrement())
-  name        String
-  email       String      @unique(map: "uq_user_email")
-  phone       String
-  gender      user_gender
-  role        user_role
-  city        String
-  state       String
-  zipCode     String
-  image       String?
-  joinedDate  DateTime?
-  leavingDate DateTime?
-  password    String
-  houseId     Int?
-  feedback    feedback[]
-  task        task[]
-  house       house?      @relation(fields: [houseId], references: [id], map: "fk_user_houseId")
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique(map: "uq_user_email")
+  phone           String
+  gender          user_gender
+  role            user_role
+  city            String
+  state           String
+  zipCode         String
+  image           String?
+  joinedDate      DateTime?
+  leavingDate     DateTime?
+  password        String
+  houseId         Int?
+  currentChoreId  Int?             @unique
+  lastname        String?
+  firstname       String?
+  assignments     assignment[]     @relation("assignments")
+  chatUsers       chatUser[]
+  feedback        feedback[]
+  messages        message[]
+  task            task[]
+  taskLogs        taskLog[]
+  currentChore    chore?           @relation("UserCurrentChore", fields: [currentChoreId], references: [id], map: "fk_user_currentChoreId")
+  house           house?           @relation(fields: [houseId], references: [id], map: "fk_user_houseId")
+  userWorkPeriods userWorkPeriod[]
 
   @@index([houseId], map: "idx_user_houseId")
+  @@index([currentChoreId], map: "idx_user_currentChoreId")
+}
+
+model house {
+  id           Int          @id @default(autoincrement())
+  abbreviation String
+  capacity     Int
+  name         String
+  workPeriodId Int?
+  assignments  assignment[]
+  chats        chat[]
+  primaryChore chore[]
+  workPeriod   workPeriod?  @relation(fields: [workPeriodId], references: [id], onDelete: Cascade)
+  users        user[]
+
+  @@index([workPeriodId])
+}
+
+model chore {
+  id          Int    @id @default(autoincrement())
+  name        String
+  houseId     Int
+  description String
+  house       house  @relation(fields: [houseId], references: [id])
+  tasks       task[]
+  currentUser user?  @relation("UserCurrentChore")
+
+  @@index([houseId])
 }
 
 model scripture {
@@ -71,12 +113,93 @@ model scripture {
   updatedAt DateTime?
 }
 
-model house {
-  id           Int    @id @default(autoincrement())
-  abbreviation String
-  capacity     Int
-  name         String
-  users        user[]
+model assignment {
+  id        Int       @id @default(autoincrement())
+  managerId Int
+  houseId   Int
+  startDate DateTime
+  endDate   DateTime?
+  house     house     @relation(fields: [houseId], references: [id])
+  manager   user      @relation("assignments", fields: [managerId], references: [id])
+
+  @@index([managerId])
+  @@index([houseId])
+}
+
+model taskLog {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  taskId       Int
+  date         DateTime
+  minutes      Int
+  createdAt    DateTime    @default(now())
+  workPeriodId Int?
+  task         task        @relation(fields: [taskId], references: [id])
+  user         user        @relation(fields: [userId], references: [id])
+  workPeriod   workPeriod? @relation(fields: [workPeriodId], references: [id])
+
+  @@index([userId, date])
+}
+
+model workPeriod {
+  id               Int              @id @default(autoincrement())
+  name             String
+  startDate        DateTime
+  endDate          DateTime
+  carryOverEnabled Boolean          @default(false)
+  houses           house[]
+  taskLogs         taskLog[]
+  userWorkPeriods  userWorkPeriod[]
+}
+
+model userWorkPeriod {
+  id               Int        @id @default(autoincrement())
+  userId           Int
+  workPeriodId     Int
+  requiredMinutes  Int
+  completedMinutes Int
+  carryOverMinutes Int        @default(0)
+  user             user       @relation(fields: [userId], references: [id])
+  workPeriod       workPeriod @relation(fields: [workPeriodId], references: [id])
+
+  @@unique([userId, workPeriodId])
+}
+
+model chat {
+  id        Int        @id @default(autoincrement())
+  name      String?
+  isGroup   Boolean    @default(false)
+  houseId   Int?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  house     house?     @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  users     chatUser[]
+  messages  message[]
+}
+
+model chatUser {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  chatId Int
+  chat   chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user   user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId])
+}
+
+model message {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  senderId  Int
+  content   String?
+  image     String?
+  createdAt DateTime @default(now())
+  readBy    Int[]
+  chat      chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    user     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([senderId])
 }
 
 enum user_gender {
@@ -96,9 +219,9 @@ enum user_role {
 }
 
 enum task_category {
-  PRIMARY
+  HOUSEHOLD
   MAINTENANCE
-  SPECIAL
+  SUPPORT
 }
 
 enum task_status {

@@ -6,11 +6,12 @@ export const houseService = {
   findAll: () => prisma.house.findMany({
   include: {
     users: true,
+    workPeriod: true,
   },
 }),
 findById: (id: number) => prisma.house.findUnique({
   where: { id },
-  include: { users: true },
+  include: { users: true, workPeriod: true },
 }),
   update: (id: number, data: any) => prisma.house.update({ where: { id }, data }),
   delete: (id: number) => prisma.house.delete({ where: { id } }),

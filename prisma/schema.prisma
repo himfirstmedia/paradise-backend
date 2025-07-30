@@ -71,6 +71,7 @@ model user {
   currentChore    chore?           @relation("UserCurrentChore", fields: [currentChoreId], references: [id], map: "fk_user_currentChoreId")
   house           house?           @relation(fields: [houseId], references: [id], map: "fk_user_houseId")
   userWorkPeriods userWorkPeriod[]
+  expoPushToken   String?
 
   @@index([houseId], map: "idx_user_houseId")
   @@index([currentChoreId], map: "idx_user_currentChoreId")

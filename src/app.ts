@@ -19,6 +19,17 @@ import { ApiError } from "utils/api_error";
 import { MainRouter } from "routes/mainRouter";
 import { localStrategy } from "config/passport";
 import prisma from "config/prisma";
+<<<<<<< HEAD
+import admin from "firebase-admin"
+
+
+admin.initializeApp({
+  credential: admin.credential.cert("../serviceAccountKey.json")
+})
+
+
+=======
+>>>>>>> parent of 7fc118d (Add service account key, chat image upload route, and notification token saving route)
 const app = express();
 const RedisStore = new connectRedis.RedisStore({
   client: redisClient,

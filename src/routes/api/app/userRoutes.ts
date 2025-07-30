@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { userController } from "../../../controllers/userController";
+import { sendPush } from "../../../services/notificationService"; // <-- Import the real sendPush
 
 const router = Router();
 
@@ -17,5 +18,24 @@ router.delete("/:id", asyncHandler(userController.delete));
 router.post("/login", asyncHandler(userController.login));
 router.get("/verify-password/:id", asyncHandler(userController.verifyPassword));
 
+// Test push notification route
+router.post(
+  "/test-token",
+  asyncHandler(async (req, res) => {
+    const { token } = req.body;
+    if (!token) {
+      res.status(400).json({ message: "Token is required" });
+      return;
+    }
+
+    await sendPush({
+      to: token,
+      title: "Test Notification",
+      body: "This is a test push notification.",
+      data: { test: true },
+    });
+    res.status(200).json({ message: "Test notification sent" });
+  })
+);
 
 export default router;

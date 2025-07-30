@@ -9,7 +9,7 @@ interface NotificationPayload {
   data?: Record<string, any>;
 }
 
-const sendPush = async (message: NotificationPayload) => {
+export const sendPush = async (message: NotificationPayload) => {
   try {
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',

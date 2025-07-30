@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import bcrypt from "bcrypt";
+import { sendExpoNotification } from "./notification";
 const SALT_ROUNDS = 10;
 
 export const userService = {
@@ -26,11 +27,11 @@ export const userService = {
       include: { task: true, house: true },
     }),
   update: async (id: number, data: any) => {
-  return prisma.user.update({
-    where: { id },
-    data,
-  });
-},
+    return prisma.user.update({
+      where: { id },
+      data,
+    });
+  },
 
   delete: (id: number) => prisma.user.delete({ where: { id } }),
   login: async (email: string, password: string) => {
@@ -47,5 +48,11 @@ export const userService = {
 
     return user;
   },
-  
 };
+// Example usage:
+sendExpoNotification(
+  "ExponentPushToken[gOWXGSIZ0n-NcexQgBXrAv]",
+  "Hello!",
+  "This is a test notification.",
+  { someData: "value" }
+);

@@ -103,12 +103,16 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@firebase/util",
       "@parcel/watcher",
       "@prisma/client",
       "@prisma/engines",
+      "@scarf/scarf",
+      "@tailwindcss/oxide",
       "aws-sdk",
       "bcrypt",
       "esbuild",
+      "msgpackr-extract",
       "prisma",
       "protobufjs",
       "puppeteer"

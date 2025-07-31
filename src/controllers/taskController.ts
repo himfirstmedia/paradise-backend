@@ -6,65 +6,71 @@ import fs from "fs";
 import path from "path";
 import dayjs from 'dayjs';
 import prisma from 'config/prisma';
+import { notificationService } from 'services/notificationService';
 
 export const taskController = {
   create: async (req: Request, res: Response) => {
-  try {
-    const {
-      name,
-      startDate,
-      endDate,
-      description,
-      progress,
-      status,
-      category,
-      instruction,
-      userId,
-      choreId,
-    } = req.body;
+    try {
+      const {
+        name,
+        startDate,
+        endDate,
+        description,
+        progress,
+        status,
+        category,
+        instruction,
+        userId,
+        choreId,
+      } = req.body;
 
-    const validCategory = Object.values(task_category).includes(category)
-      ? (category as task_category)
-      : undefined;
+      const validCategory = Object.values(task_category).includes(category)
+        ? (category as task_category)
+        : undefined;
 
-    const validStatus = Object.values(task_status).includes(status)
-      ? (status as task_status)
-      : undefined;
+      const validStatus = Object.values(task_status).includes(status)
+        ? (status as task_status)
+        : undefined;
 
-    const task = await taskService.create({
-      name,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : undefined,
-      description,
-      instruction,
-      progress,
-      category: validCategory,
-      status: validStatus,
-      user: userId
-        ? {
-            connect: {
-              id: Number(userId),
-            },
-          }
-        : undefined,
-      chore: choreId
-        ? {
-            connect: {
-              id: Number(choreId),
-            },
-          }
-        : undefined,
-    });
+      const task = await taskService.create({
+        name,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : undefined,
+        description,
+        instruction,
+        progress,
+        category: validCategory,
+        status: validStatus,
+        user: userId
+          ? {
+              connect: {
+                id: Number(userId),
+              },
+            }
+          : undefined,
+        chore: choreId
+          ? {
+              connect: {
+                id: Number(choreId),
+              },
+            }
+          : undefined,
+      });
 
-    res.status(201).json(task);
-  } catch (error: any) {
-    console.error("Error creating task:", error);
-    res.status(500).json({
-      message:
-        error?.message || "An error occurred while creating the task.",
-    });
-  }
-},
+      // Notify the assigned user about the new task
+      if (userId && task.name) {
+        await notificationService.notifyNewTaskAssigned(Number(userId), task.name);
+      }
+
+      res.status(201).json(task);
+    } catch (error: any) {
+      console.error("Error creating task:", error);
+      res.status(500).json({
+        message:
+          error?.message || "An error occurred while creating the task.",
+      });
+    }
+  },
 
   findAll: async (_: Request, res: Response) => {
     const users = await taskService.findAll();
@@ -75,87 +81,100 @@ export const taskController = {
     res.json(user);
   },
   update: async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "Invalid task id" });
-  }
-
-  try {
-    const {
-      name,
-      startDate,
-      endDate,
-      description,
-      progress,
-      status,
-      category,
-      instruction,
-      userId,
-    } = req.body;
-
-    const validCategory = Object.values(task_category).includes(category)
-      ? (category as task_category)
-      : undefined;
-
-    const validStatus = Object.values(task_status).includes(status)
-      ? (status as task_status)
-      : undefined;
-
-    const imagePath = req.file ? `/uploads/tasks/${req.file.filename}` : undefined;
-
-    const existingTask = await taskService.findById(id);
-
-    const updateData: any = {
-      name,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-      description,
-      progress,
-      instruction,
-      category: validCategory,
-      status: validStatus,
-      userId: userId ? Number(userId) : undefined,
-    };
-
-    if (imagePath) {
-      updateData.image = imagePath;
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid task id" });
     }
 
-    // Remove image if task is rejected (status and progress both PENDING)
-    const isRejection =
-      validStatus === "PENDING" && progress?.toUpperCase() === "PENDING";
+    try {
+      const {
+        name,
+        startDate,
+        endDate,
+        description,
+        progress,
+        status,
+        category,
+        instruction,
+        userId,
+      } = req.body;
 
-    if (isRejection && existingTask.image) {
-      const fullImagePath = path.join(__dirname, "..", "..", "public", existingTask.image);
-      try {
-        await fs.promises.unlink(fullImagePath);
-      } catch (err) {
-        console.warn("Failed to delete image file:", err.message);
+      const validCategory = Object.values(task_category).includes(category)
+        ? (category as task_category)
+        : undefined;
+
+      const validStatus = Object.values(task_status).includes(status)
+        ? (status as task_status)
+        : undefined;
+
+      const imagePath = req.file ? `/uploads/tasks/${req.file.filename}` : undefined;
+
+      const existingTask = await taskService.findById(id);
+
+      const updateData: any = {
+        name,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        description,
+        progress,
+        instruction,
+        category: validCategory,
+        status: validStatus,
+        userId: userId ? Number(userId) : undefined,
+      };
+
+      if (imagePath) {
+        updateData.image = imagePath;
       }
-      updateData.image = null;
-    }
 
-    // Update the task
-    const updatedTask = await taskService.update(id, updateData);
+      // Remove image if task is rejected (status and progress both PENDING)
+      const isRejection =
+        validStatus === "PENDING" && progress?.toUpperCase() === "PENDING";
 
-    // 🔁 If both choreId and userId exist, set user's currentChoreId
-    if (userId && existingTask.choreId) {
-      await prisma.user.update({
-        where: { id: Number(userId) },
-        data: {
-          currentChoreId: existingTask.choreId,
-        },
+      if (isRejection && existingTask.image) {
+        const fullImagePath = path.join(__dirname, "..", "..", "public", existingTask.image);
+        try {
+          await fs.promises.unlink(fullImagePath);
+        } catch (err) {
+          console.warn("Failed to delete image file:", err.message);
+        }
+        updateData.image = null;
+      }
+
+      // Update the task
+      const updatedTask = await taskService.update(id, updateData);
+
+      // Notify about task status change
+      if (validStatus && validStatus !== existingTask.status) {
+        await notificationService.notifyTaskStatusChange(id, validStatus);
+      }
+
+      // 🔁 If both choreId and userId exist, set user's currentChoreId
+      if (userId && existingTask.choreId) {
+        await prisma.user.update({
+          where: { id: Number(userId) },
+          data: {
+            currentChoreId: existingTask.choreId,
+          },
+        });
+
+        // Notify user about chore update
+        const chore = await prisma.chore.findUnique({
+          where: { id: existingTask.choreId },
+        });
+        if (chore && chore.name) {
+          await notificationService.notifyChoreUpdate(Number(userId), chore.name);
+        }
+      }
+
+      res.json(updatedTask);
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      res.status(500).json({
+        message: error?.message || "Failed to update task.",
       });
     }
-
-    res.json(updatedTask);
-  } catch (error: any) {
-    console.error("Error updating task:", error);
-    res.status(500).json({
-      message: error?.message || "Failed to update task.",
-    });
-  }
-},
+  },
 
   delete: async (req: Request, res: Response) => {
     await taskService.delete(Number(req.params.id));
@@ -172,6 +191,9 @@ export const taskController = {
           status: 'REVIEWING',
           image: imagePath,
         });
+
+        // Notify about task status change to REVIEWING
+        await notificationService.notifyTaskStatusChange(id, 'REVIEWING');
 
         res.json(task);
       } catch (error: any) {

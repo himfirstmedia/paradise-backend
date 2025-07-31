@@ -62,6 +62,7 @@ model user {
   currentChoreId  Int?             @unique
   lastname        String?
   firstname       String?
+  expoPushToken   String?
   assignments     assignment[]     @relation("assignments")
   chatUsers       chatUser[]
   feedback        feedback[]
@@ -71,7 +72,6 @@ model user {
   currentChore    chore?           @relation("UserCurrentChore", fields: [currentChoreId], references: [id], map: "fk_user_currentChoreId")
   house           house?           @relation(fields: [houseId], references: [id], map: "fk_user_houseId")
   userWorkPeriods userWorkPeriod[]
-  expoPushToken   String?
 
   @@index([houseId], map: "idx_user_houseId")
   @@index([currentChoreId], map: "idx_user_currentChoreId")
@@ -160,7 +160,7 @@ model userWorkPeriod {
   requiredMinutes  Int
   completedMinutes Int
   carryOverMinutes Int        @default(0)
-  user             user       @relation(fields: [userId], references: [id])
+  user             user       @relation(fields: [userId], references: [id], onDelete: Cascade)
   workPeriod       workPeriod @relation(fields: [workPeriodId], references: [id])
 
   @@unique([userId, workPeriodId])

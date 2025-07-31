@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { userController } from "../../../controllers/userController";
-import { sendPush } from "../../../services/notificationService"; // <-- Import the real sendPush
+import { sendPush } from "../../../services/notificationService";
 import saveToken from "controllers/fcmController";
 
 const router = Router();
@@ -18,8 +18,9 @@ router.put("/:id", asyncHandler(userController.update));
 router.delete("/:id", asyncHandler(userController.delete));
 router.post("/login", asyncHandler(userController.login));
 router.get("/verify-password/:id", asyncHandler(userController.verifyPassword));
-
-// Test push notification route
+router.post("/validate-token", asyncHandler(userController.validateToken)); 
 router.post("/save-token", saveToken);
+
+
 
 export default router;

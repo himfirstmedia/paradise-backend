@@ -181,7 +181,7 @@ export const taskController = {
     res.status(204).send();
   },
   submitWithImage: [
-    upload.single('image'),
+    upload("tasks").single("image"),
     async (req: Request, res: Response) => {
       try {
         const id = Number(req.params.id);

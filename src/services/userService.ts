@@ -50,9 +50,9 @@ export const userService = {
   },
 };
 // Example usage:
-sendExpoNotification(
-  "ExponentPushToken[gOWXGSIZ0n-NcexQgBXrAv]",
-  "Hello!",
-  "This is a test notification.",
-  { someData: "value" }
-);
+// sendExpoNotification(
+//   "ExponentPushToken[gOWXGSIZ0n-NcexQgBXrAv]",
+//   "Hello!",
+//   "This is a test notification.",
+//   { someData: "value" }
+// );

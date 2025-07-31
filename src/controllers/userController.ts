@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { userService } from "../services/userService";
 import prisma from "config/prisma";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
 
@@ -14,7 +14,7 @@ export const userController = {
     if (user) {
       res.json(user);
     } else {
-       res.status(404).json({ message: "Invalid email or password" });
+      res.status(404).json({ message: "Invalid email or password" });
     }
   },
 
@@ -22,14 +22,17 @@ export const userController = {
     const user = await userService.create(req.body);
     res.status(201).json(user);
   },
+
   findAll: async (_: Request, res: Response) => {
     const users = await userService.findAll();
     res.json(users);
   },
+
   findById: async (req: Request, res: Response) => {
     const user = await userService.findById(Number(req.params.id));
     res.json(user);
   },
+
   update: async (req: Request, res: Response) => {
     try {
       const userId = Number(req.params.id);
@@ -71,51 +74,80 @@ export const userController = {
       return res.status(500).json({ message: "Internal server error" });
     }
   },
+
   delete: async (req: Request, res: Response) => {
     await userService.delete(Number(req.params.id));
     res.status(204).send();
   },
+
   verifyPassword: async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const password = req.query.password as string;
+    const { id } = req.params;
+    const password = req.query.password as string;
 
-  if (!password) {
-    return res.status(400).json({ error: "Password is required" });
-  }
+    if (!password) {
+      return res.status(400).json({ error: "Password is required" });
+    }
 
-  const userId = parseInt(id, 10);
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
-  }
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { password: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
 
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-  const storedHash = user.password;
-  const input = password;
-  const match = await bcrypt.compare(input, storedHash);
+    const storedHash = user.password;
+    const input = password;
+    const match = await bcrypt.compare(input, storedHash);
 
-  // 🚧 Re-hash the input for comparison (will not match storedHash!)
-  const rehashedInput = await bcrypt.hash(input, 10);
+    // 🚧 Re-hash the input for comparison (will not match storedHash!)
+    const rehashedInput = await bcrypt.hash(input, 10);
 
-  // ✅ Logs
-  console.log("🔐 Password Verification Debug Info:");
-  console.log("Input Password:", input);
-  console.log("Stored Hash (from DB):", storedHash);
-  console.log("Rehashed Input Password:", rehashedInput);
-  console.log("Match Result:", match);
+    // ✅ Logs
+    console.log("🔐 Password Verification Debug Info:");
+    console.log("Input Password:", input);
+    console.log("Stored Hash (from DB):", storedHash);
+    console.log("Rehashed Input Password:", rehashedInput);
+    console.log("Match Result:", match);
 
-  return res.json({
-    match,
-    inputPassword: input,
-    rehashedInput,
-    storedHash,
-  });
-}
-}
+    return res.json({
+      match,
+      inputPassword: input,
+      rehashedInput,
+      storedHash,
+    });
+  },
+
+  validateToken: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "No token provided" });
+      }
+
+      const user = await prisma.user.findFirst({
+        where: { expoPushToken: token },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or unknown token" });
+      }
+
+      res.json({ user });
+    } catch (error) {
+      console.error("🔴 Token validation error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+};

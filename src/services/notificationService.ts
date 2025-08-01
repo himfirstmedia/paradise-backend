@@ -113,7 +113,7 @@ export const notificationService = {
     };
 
     console.log(`Notifying task ${taskId} status change to ${newStatus}`);
-    await notifyUserById(task.userId!, message);
+    await notifyUserById(task.userId!, message as any);
 
     if (task.chore?.houseId) {
       console.log(`Notifying managers for house ${task.chore.houseId}`);
@@ -121,7 +121,7 @@ export const notificationService = {
         title: 'Resident Task Update',
         body: `Task "${task.name}" status updated to ${newStatus}`,
         data: { taskId: task.id },
-      });
+      } as any);
     }
   },
 
@@ -131,7 +131,7 @@ export const notificationService = {
       title: 'New Task Assigned',
       body: `You have been assigned a new task: "${taskName}"`,
       data: {},
-    });
+    }as any);
   },
 
   notifyFeedback: async (taskId: number, fromUserId: number) => {
@@ -150,7 +150,7 @@ export const notificationService = {
       title: 'Feedback Received',
       body: `You have new feedback on your task: "${task.name}"`,
       data: { taskId },
-    });
+    }as any);
   },
 
   notifyChoreUpdate: async (userId: number, choreName: string) => {
@@ -159,7 +159,7 @@ export const notificationService = {
       title: 'Chore Updated',
       body: `Your chore assignment "${choreName}" has been updated.`,
       data: {},
-    });
+    }as any);
   },
 
   notifyNewMessage: async (chatId: number, messageId: number, senderId: number) => {
@@ -227,7 +227,7 @@ export const notificationService = {
         title: 'Added to Chat',
         body: `You have been added to ${chat.isGroup ? 'group' : 'a'} chat: "${chat.name || 'Chat'}"`,
         data: { chatId },
-      });
+      }as any);
     } catch (error) {
       console.error('Error notifying user added to chat:', error);
     }

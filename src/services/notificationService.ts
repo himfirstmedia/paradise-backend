@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import prisma from 'config/prisma';
 import { task_status, user_role } from '@prisma/client';
+import { sendExpoNotification } from './notification';
 
 interface NotificationPayload {
   to: string;
@@ -44,7 +45,7 @@ export const sendPush = async (message: NotificationPayload) => {
   }
 };
 
-const notifyUserById = async (userId: number, payload: Omit<NotificationPayload, 'to'>) => {
+const notifyUserById = async (userId: number, payload: NotificationPayload,) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { expoPushToken: true },
@@ -52,13 +53,13 @@ const notifyUserById = async (userId: number, payload: Omit<NotificationPayload,
 
   if (user?.expoPushToken) {
     console.log(`Notifying user ${userId} with token: ${user.expoPushToken}`);
-    await sendPush({ to: user.expoPushToken, ...payload });
+    await sendExpoNotification( user.expoPushToken, payload.title,payload.body,payload.data );
   } else {
     console.log(`No push token found for user ${userId}`);
   }
 };
 
-const notifyHouseManagers = async (houseId: number, payload: Omit<NotificationPayload, 'to'>) => {
+const notifyHouseManagers = async (houseId: number, payload:NotificationPayload) => {
   const managers = await prisma.user.findMany({
     where: {
       role: {
@@ -79,7 +80,7 @@ const notifyHouseManagers = async (houseId: number, payload: Omit<NotificationPa
   console.log(`Found ${managers.length} managers for houseId ${houseId}:`, managers);
   for (const manager of managers) {
     console.log(`Sending notification to manager ${manager.id}`);
-    await sendPush({ to: manager.expoPushToken!, ...payload });
+    await sendExpoNotification(manager.expoPushToken!,payload.title,payload.body,payload.data );
   }
 };
 
@@ -126,7 +127,7 @@ export const notificationService = {
 
   notifyNewTaskAssigned: async (userId: number, taskName: string) => {
     console.log(`Notifying user ${userId} about new task: ${taskName}`);
-    await notifyUserById(userId, {
+  const user=  await notifyUserById(userId, {
       title: 'New Task Assigned',
       body: `You have been assigned a new task: "${taskName}"`,
       data: {},
@@ -192,14 +193,17 @@ export const notificationService = {
       console.log(`Notifying ${recipients.length} users for new message in chat ${chatId}`);
 
       for (const user of recipients) {
-        await sendPush({
-          to: user.expoPushToken!,
-          title: `New Message from ${message.sender.name}`,
-          body: message.content && message.content.length > 50
+        if (user.expoPushToken) {
+            await sendExpoNotification(
+          user.expoPushToken!,
+          `New Message from ${message.sender.name}`,
+          message.content && message.content.length > 50
             ? `${message.content.slice(0, 47)}...`
             : message.content || 'New image message',
-          data: { chatId, messageId },
-        });
+        { chatId, messageId },
+        );
+        }
+      
       }
     } catch (error) {
       console.error('Error notifying new message:', error);

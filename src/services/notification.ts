@@ -1,4 +1,5 @@
 import axios from "axios";
+import prisma from "config/prisma";
 
 export async function sendExpoNotification(token, title, body, data = {}) {
   try {
@@ -28,3 +29,5 @@ export async function sendExpoNotification(token, title, body, data = {}) {
     );
   }
 }
+
+

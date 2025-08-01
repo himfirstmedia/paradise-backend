@@ -13,8 +13,8 @@ model feedback {
   userId  Int
   taskId  Int
   type    String
-  task    task   @relation(fields: [taskId], references: [id], map: "fk_feedback_taskId")
-  user    user   @relation(fields: [userId], references: [id], map: "fk_feedback_userId")
+  task    task   @relation(fields: [taskId], references: [id], map: "fk_feedback_taskId", onDelete: Cascade)
+  user    user   @relation(fields: [userId], references: [id], map: "fk_feedback_userId", onDelete: Cascade)
 
   @@index([taskId], map: "idx_feedback_taskId")
   @@index([userId], map: "idx_feedback_userId")

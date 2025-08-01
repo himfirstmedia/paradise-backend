@@ -18,7 +18,7 @@ router.put("/:id", asyncHandler(userController.update));
 router.delete("/:id", asyncHandler(userController.delete));
 router.post("/login", asyncHandler(userController.login));
 router.get("/verify-password/:id", asyncHandler(userController.verifyPassword));
-router.post("/validate-token", asyncHandler(userController.validateToken)); 
+router.post("/validate-push-token", asyncHandler(userController.validateToken)); 
 router.post("/save-token", saveToken);
 
 

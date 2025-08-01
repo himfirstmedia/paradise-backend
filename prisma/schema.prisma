@@ -13,32 +13,33 @@ model feedback {
   userId  Int
   taskId  Int
   type    String
-  task    task   @relation(fields: [taskId], references: [id], map: "fk_feedback_taskId", onDelete: Cascade)
-  user    user   @relation(fields: [userId], references: [id], map: "fk_feedback_userId", onDelete: Cascade)
+  task    task   @relation(fields: [taskId], references: [id], onDelete: Cascade, map: "fk_feedback_taskId")
+  user    user   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_feedback_userId")
 
   @@index([taskId], map: "idx_feedback_taskId")
   @@index([userId], map: "idx_feedback_userId")
 }
 
 model task {
-  id          Int            @id @default(autoincrement())
-  name        String
-  startDate   DateTime
-  endDate     DateTime?
-  description String?
-  progress    String?
-  userId      Int?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  instruction String?
-  category    task_category?
-  status      task_status?
-  image       String?
-  choreId     Int?
-  feedback    feedback[]
-  chore       chore?         @relation(fields: [choreId], references: [id], map: "fk_task_choreId")
-  user        user?          @relation(fields: [userId], references: [id], map: "fk_task_userId")
-  taskLogs    taskLog[]
+  id           Int            @id @default(autoincrement())
+  name         String
+  startDate    DateTime
+  endDate      DateTime?
+  description  String?
+  progress     String?
+  userId       Int?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  instruction  String?
+  category     task_category?
+  status       task_status?
+  image        String?
+  choreId      Int?
+  cloudinaryId String?
+  feedback     feedback[]
+  chore        chore?         @relation(fields: [choreId], references: [id], map: "fk_task_choreId")
+  user         user?          @relation(fields: [userId], references: [id], map: "fk_task_userId")
+  taskLogs     taskLog[]
 
   @@index([userId], map: "idx_task_userId")
   @@index([choreId], map: "idx_task_choreId")
@@ -189,15 +190,16 @@ model chatUser {
 }
 
 model message {
-  id        Int      @id @default(autoincrement())
-  chatId    Int
-  senderId  Int
-  content   String?
-  image     String?
-  createdAt DateTime @default(now())
-  readBy    Int[]
-  chat      chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender    user     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  id           Int      @id @default(autoincrement())
+  chatId       Int
+  senderId     Int
+  content      String?
+  image        String?
+  createdAt    DateTime @default(now())
+  readBy       Int[]
+  cloudinaryId String?
+  chat         chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender       user     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([chatId])
   @@index([senderId])

@@ -19,6 +19,9 @@ router.post("/mark-read", catchAsync(chatController.markAsRead));
 // Group management
 router.post("/add-to-group", catchAsync(chatController.addToGroup));
 
+router.delete("/:id", catchAsync(chatController.deleteMessage));
+
+
 // Image upload route
 router.post("/upload", upload("chats").single("image"), catchAsync(chatController.uploadImage));
 

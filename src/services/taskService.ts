@@ -6,7 +6,26 @@ export const taskService = {
     return prisma.task.create({ data });
   },
 
-  findAll: () => prisma.task.findMany(),
+  findAll: () => {
+    return prisma.task.findMany({
+      where: {
+        OR: [
+          // Include tasks without any chore association
+          { choreId: null },
+          // Include tasks where the chore isn't assigned to any user
+          {
+            chore: {
+              currentUser: null,
+            },
+          },
+        ],
+      },
+      include: {
+        user: true,
+        chore: true,
+      },
+    });
+  },
 
   findById: (id: number) => {
     console.log("🔍 [taskService] findById called with id: ", id);

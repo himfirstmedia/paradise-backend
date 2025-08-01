@@ -7,6 +7,7 @@ import path from "path";
 import dayjs from 'dayjs';
 import prisma from 'config/prisma';
 import { notificationService } from 'services/notificationService';
+import cloudinary from 'config/cloudinary';
 
 export const taskController = {
   create: async (req: Request, res: Response) => {
@@ -73,8 +74,13 @@ export const taskController = {
   },
 
   findAll: async (_: Request, res: Response) => {
-    const users = await taskService.findAll();
-    res.json(users);
+    try {
+      const tasks = await taskService.findAll();
+      res.json(tasks);
+    } catch (error: any) {
+      console.error("Fetch tasks error:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
   },
   findById: async (req: Request, res: Response) => {
     const user = await taskService.findById(Number(req.params.id));
@@ -107,7 +113,10 @@ export const taskController = {
         ? (status as task_status)
         : undefined;
 
-      const imagePath = req.file ? `/uploads/tasks/${req.file.filename}` : undefined;
+      const imageUrl = req.file ? (req.file as any).path : undefined;
+const cloudinaryId = req.file ? (req.file as any).filename : undefined;
+
+
 
       const existingTask = await taskService.findById(id);
 
@@ -123,23 +132,24 @@ export const taskController = {
         userId: userId ? Number(userId) : undefined,
       };
 
-      if (imagePath) {
-        updateData.image = imagePath;
-      }
+      if (imageUrl) {
+  updateData.image = imageUrl;
+  updateData.cloudinaryId = cloudinaryId;
+}
 
       // Remove image if task is rejected (status and progress both PENDING)
       const isRejection =
         validStatus === "PENDING" && progress?.toUpperCase() === "PENDING";
 
-      if (isRejection && existingTask.image) {
-        const fullImagePath = path.join(__dirname, "..", "..", "public", existingTask.image);
-        try {
-          await fs.promises.unlink(fullImagePath);
-        } catch (err) {
-          console.warn("Failed to delete image file:", err.message);
-        }
-        updateData.image = null;
-      }
+      if (isRejection && existingTask.cloudinaryId) {
+  try {
+    await cloudinary.uploader.destroy(existingTask.cloudinaryId);
+  } catch (err) {
+    console.warn("Failed to delete Cloudinary image:", err.message);
+  }
+  updateData.image = null;
+  updateData.cloudinaryId = null;
+}
 
       // Update the task
       const updatedTask = await taskService.update(id, updateData);

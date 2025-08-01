@@ -3,11 +3,27 @@ import { chatService } from '../services/chatService';
 import { Prisma } from "@prisma/client";
 import prisma from 'config/prisma';
 import { notificationService } from '../services/notificationService';
+import cloudinary from 'config/cloudinary';
 
 // Define a custom Request type for multer
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
+
+
+function extractCloudinaryPublicId(imageUrl: string): string | null {
+  try {
+    const urlParts = imageUrl.split("/");
+    const filename = urlParts[urlParts.length - 1];
+    const publicId = filename.split(".").slice(0, -1).join(".");
+    const folder = urlParts.slice(-2, -1)[0]; 
+    return `${folder}/${publicId}`;
+  } catch {
+    return null;
+  }
+}
+
+
 
 export const chatController = {
   createChat: async (req: Request, res: Response) => {
@@ -179,6 +195,58 @@ export const chatController = {
     }
   },
 
+  deleteMessage: async (req: Request, res: Response) => {
+  const chatId = Number(req.params.id);
+  if (isNaN(chatId)) {
+    return res.status(400).json({ error: "Invalid chat ID" });
+  }
+
+  try {
+    console.log('--- DELETE CHAT REQUEST ---', { chatId });
+
+    // Check if the chat exists
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId },
+      include: {
+        messages: true, 
+      },
+    });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    // Delete associated Cloudinary images from messages
+    for (const message of chat.messages) {
+      if (message.image) {
+        const publicId = extractCloudinaryPublicId(message.image);
+        if (publicId) {
+          try {
+            await cloudinary.uploader.destroy(publicId);
+            console.log(`Deleted Cloudinary image: ${publicId}`);
+          } catch (err: any) {
+            console.warn(`Failed to delete Cloudinary image: ${publicId}`, err.message);
+          }
+        }
+      }
+    }
+
+    // Delete messages, chat users, then the chat
+    await prisma.message.deleteMany({ where: { chatId } });
+    await prisma.chatUser.deleteMany({ where: { chatId } });
+    await prisma.chat.delete({ where: { id: chatId } });
+
+    console.log(`Chat ${chatId} and all related data deleted`);
+    res.status(200).json({ success: true, message: "Chat deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting chat:", error);
+    res.status(500).json({
+      error: "An error occurred while deleting the chat",
+      details: error?.message,
+    });
+  }
+},
+
   addToGroup: async (req: Request, res: Response) => {
     try {
       const { chatId, userId } = req.body;
@@ -251,19 +319,24 @@ export const chatController = {
   },
 
   uploadImage: async (req: MulterRequest, res: Response) => {
-    try {
-      console.log('--- UPLOAD IMAGE REQUEST ---');
-      if (!req.file) {
-        console.error('No image file provided');
-        return res.status(400).json({ error: "No image file provided" });
-      }
-      const imageUrl = `/uploads/chats/${req.file.filename}`;
-      console.log('Image uploaded:', imageUrl);
-      
-      res.status(200).json({ imageUrl });
-    } catch (error: any) {
-      console.error("Image upload error:", error.message, error.stack);
-      res.status(500).json({ error: `Image upload failed: ${error.message}` });
+  try {
+    console.log('--- UPLOAD IMAGE REQUEST ---');
+
+    if (!req.file) {
+      console.error('No image file provided');
+      return res.status(400).json({ error: "No image file provided" });
     }
-  },
+
+    const imageFile = req.file as Express.Multer.File & { path?: string; filename?: string; };
+    const cloudinaryUrl = (imageFile as any).path;
+
+    console.log('Image uploaded to Cloudinary:', cloudinaryUrl);
+
+    res.status(200).json({ imageUrl: cloudinaryUrl });
+  } catch (error: any) {
+    console.error("Image upload error:", error.message, error.stack);
+    res.status(500).json({ error: `Image upload failed: ${error.message}` });
+  }
+},
+
 };

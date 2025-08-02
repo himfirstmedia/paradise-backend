@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { userController } from "../../../controllers/userController";
-import { sendPush } from "../../../services/notificationService";
 import saveToken from "controllers/fcmController";
 
 const router = Router();
@@ -20,7 +19,5 @@ router.post("/login", asyncHandler(userController.login));
 router.get("/verify-password/:id", asyncHandler(userController.verifyPassword));
 router.post("/validate-push-token", asyncHandler(userController.validateToken)); 
 router.post("/save-token", saveToken);
-
-
 
 export default router;

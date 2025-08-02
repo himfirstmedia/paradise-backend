@@ -31,6 +31,7 @@ export const chatController = {
       const { participantIds, houseIds, isGroup, name } = req.body;
       console.log('--- CREATE CHAT REQUEST ---', { participantIds, houseIds, isGroup, name });
 
+      // Validate payload
       if (!participantIds || !Array.isArray(participantIds)) {
         console.error('Invalid participantIds:', participantIds);
         return res.status(400).json({ error: 'participantIds is required and must be an array' });
@@ -46,6 +47,7 @@ export const chatController = {
         return res.status(400).json({ error: 'Individual chat must have exactly 2 participants' });
       }
 
+      // Check for existing individual chat
       if (!isGroup) {
         const existingChat = await prisma.chat.findFirst({
           where: {
@@ -55,7 +57,8 @@ export const chatController = {
                 userId: { in: participantIds }
               }
             }
-          }
+          },
+          include: { users: true, house: true }
         });
 
         if (existingChat) {
@@ -64,20 +67,28 @@ export const chatController = {
         }
       }
 
+      // Check for existing group chat with matching houseIds and participantIds
       if (isGroup && houseIds && houseIds.length > 0) {
         const existingGroupChats = await prisma.chat.findMany({
           where: {
             isGroup: true,
+            houseId: { in: houseIds }
           },
           include: {
-            house: true,
+            users: true,
+            house: true
           }
         });
 
         const matchingChat = existingGroupChats.find(chat => {
           const chatHouseIds = chat.house ? [chat.house.id] : [];
+          const chatUserIds = chat.users.map(u => u.userId).sort();
           const requestHouseIds = [...houseIds].sort();
-          return JSON.stringify(chatHouseIds) === JSON.stringify(requestHouseIds);
+          const requestUserIds = [...participantIds].sort();
+          return (
+            JSON.stringify(chatHouseIds) === JSON.stringify(requestHouseIds) &&
+            JSON.stringify(chatUserIds) === JSON.stringify(requestUserIds)
+          );
         });
 
         if (matchingChat) {
@@ -86,6 +97,7 @@ export const chatController = {
         }
       }
 
+      // Generate chat name if not provided
       let chatName = name;
       if (!chatName && isGroup && houseIds?.length) {
         const houses = await prisma.house.findMany({
@@ -97,6 +109,7 @@ export const chatController = {
         console.log('Generated chat name from houses:', chatName);
       }
 
+      // Create new chat
       const chatData: Prisma.chatCreateInput = {
         name: chatName ?? "Group Chat",
         isGroup,
@@ -109,7 +122,7 @@ export const chatController = {
       const chat = await chatService.createChat(chatData);
       console.log('Chat created:', chat.id);
 
-      // Notify all participants about being added to the chat
+      // Notify all participants
       for (const userId of participantIds) {
         console.log(`Notifying user ${userId} about being added to chat ${chat.id}`);
         await notificationService.notifyAddedToChat(Number(userId), chat.id);
@@ -119,7 +132,8 @@ export const chatController = {
     } catch (error: any) {
       console.error("Error creating chat:", error);
       res.status(500).json({
-        message: error?.message || "An error occurred while creating the chat.",
+        error: 'Failed to create chat',
+        details: error.message || 'An unexpected error occurred'
       });
     }
   },

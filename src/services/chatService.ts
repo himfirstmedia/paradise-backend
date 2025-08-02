@@ -2,40 +2,29 @@ import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
 export const chatService = {
- createChat: async (data: Prisma.chatCreateInput) => {
-  
-  const createdChat = await prisma.chat.create({ 
-    data,
-    include: {
-      users: {
-        include: {
-          user: true 
-        }
-      },
-      house: true    
-    }
-  });
-
-  return await chatService.findChatById(createdChat.id);
-},
-
+  createChat: async (data: Prisma.chatCreateInput) => {
+    const createdChat = await prisma.chat.create({
+      data,
+      include: {
+        users: {
+          include: { user: true }
+        },
+        house: true
+      }
+    });
+    return await chatService.findChatById(createdChat.id);
+  },
 
   findChatById: (id: number) => {
     return prisma.chat.findUnique({
       where: { id },
       include: {
         users: {
-          include: {
-            user: true
-          }
+          include: { user: true }
         },
         messages: {
-          orderBy: {
-            createdAt: 'asc'
-          },
-          include: {
-            sender: true
-          }
+          orderBy: { createdAt: 'asc' },
+          include: { sender: true }
         }
       }
     });
@@ -46,23 +35,19 @@ export const chatService = {
       return await prisma.chat.findMany({
         where: {
           users: {
-            some: {
-              userId: userId
-            }
+            some: { userId }
           }
         },
         include: {
           users: {
-            include: {
-              user: true
-            }
+            include: { user: true }
           },
           messages: {
-            orderBy: {
-              createdAt: 'desc'
-            },
-            take: 1
-          }
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            include: { sender: true } // Add sender include
+          },
+          house: true // Include house for houseId
         }
       });
     } catch (error) {
@@ -72,24 +57,16 @@ export const chatService = {
   },
 
   createMessage: (data: Prisma.messageCreateInput) => {
-    return prisma.message.create({ 
+    return prisma.message.create({
       data,
-      include: {
-        sender: true
-      }
+      include: { sender: true }
     });
   },
 
   addUserToChat: (chatId: number, userId: number) => {
     return prisma.chatUser.create({
-      data: {
-        chatId,
-        userId
-      },
-      include: {
-        chat: true,
-        user: true
-      }
+      data: { chatId, userId },
+      include: { chat: true, user: true }
     });
   },
 
@@ -97,12 +74,10 @@ export const chatService = {
     return prisma.message.updateMany({
       where: {
         chatId,
-        senderId: { not: userId } // Only mark others' messages as read
+        senderId: { not: userId }
       },
       data: {
-        readBy: {
-          push: userId
-        }
+        readBy: { push: userId }
       }
     });
   },
@@ -111,9 +86,7 @@ export const chatService = {
     return prisma.message.findMany({
       where: { chatId },
       orderBy: { createdAt: 'asc' },
-      include: {
-        sender: true
-      }
+      include: { sender: true }
     });
   }
 };

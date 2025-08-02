@@ -1,11 +1,11 @@
 import prisma from "config/prisma";
-import { sendExpoNotification } from "services/notification";
+import  sendExpoNotification  from "services/notification";
 import { catchAsync } from "utils/catch_error";
 
 const saveToken = catchAsync(async (req, res) => {
   console.log(req.body.body);
   
-  const { token, userId } = JSON.parse(req.body.body);
+  const { token, userId } = req.body;
   if (!token || !userId) {
     throw new Error("No token");
   }

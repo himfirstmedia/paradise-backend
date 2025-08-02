@@ -12,6 +12,8 @@ export const userController = {
     const user = await userService.login(email, password);
 
     if (user) {
+      console.log(user);
+      
       res.json(user);
     } else {
       res.status(404).json({ message: "Invalid email or password" });

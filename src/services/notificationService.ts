@@ -3,18 +3,18 @@ import prisma from 'config/prisma';
 import { task_status, user_role } from '@prisma/client';
 
 interface NotificationPayload {
-  to: string | string[]; // Support single token or array for batch
+  to: string | string[];
   title: string;
   body: string;
   data?: Record<string, any>;
-  sound?: string; // Optional sound field
+  sound?: string;
 }
 
 interface PartialNotificationPayload {
   title: string;
   body: string;
   data?: Record<string, any>;
-  sound?: string; // Optional sound field
+  sound?: string;
 }
 
 interface ExpoResponse {
@@ -23,7 +23,6 @@ interface ExpoResponse {
 }
 
 async function sendExpoNotification(payload: NotificationPayload, retries = 3, retryDelay = 1000): Promise<ExpoResponse | null> {
-  // Normalize payload to always be an array for batch support
   const messages = Array.isArray(payload.to)
     ? payload.to.map(to => ({
         to,
@@ -104,20 +103,6 @@ async function sendExpoNotification(payload: NotificationPayload, retries = 3, r
   return null;
 }
 
-const notifyUserById = async (userId: number, payload: PartialNotificationPayload) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { expoPushToken: true },
-  });
-
-  if (user?.expoPushToken) {
-    console.log(`Notifying user ${userId} with token: ${user.expoPushToken}`);
-    await sendExpoNotification({ ...payload, to: user.expoPushToken });
-  } else {
-    console.log(`No push token found for user ${userId}`);
-  }
-};
-
 const notifyHouseManagers = async (houseId: number, payload: PartialNotificationPayload) => {
   const managers = await prisma.user.findMany({
     where: {
@@ -145,49 +130,65 @@ const notifyHouseManagers = async (houseId: number, payload: PartialNotification
 };
 
 export const notificationService = {
-  notifyTaskStatusChange: async (taskId: number, newStatus: task_status) => {
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        user: true,
-        chore: { include: { house: true } },
-      },
+  notifyUserById: async (userId: number, payload: PartialNotificationPayload) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { expoPushToken: true },
     });
 
-    if (!task || !task.user || !task.user.expoPushToken) {
-      console.log(`Task ${taskId} or user not found, or no push token`);
-      return;
-    }
-
-    const statusMsg = {
-      PENDING: 'has been marked as pending.',
-      REVIEWING: 'is under review.',
-      APPROVED: 'has been approved 🎉',
-      REJECTED: 'was rejected. Please review and resubmit.',
-    }[newStatus];
-
-    const message: PartialNotificationPayload = {
-      title: 'Task Update',
-      body: `Your task "${task.name}" ${statusMsg}`,
-      data: { taskId: task.id },
-    };
-
-    console.log(`Notifying task ${taskId} status change to ${newStatus}`);
-    await notifyUserById(task.userId!, message);
-
-    if (task.chore?.houseId) {
-      console.log(`Notifying managers for house ${task.chore.houseId}`);
-      await notifyHouseManagers(task.chore.houseId, {
-        title: 'Resident Task Update',
-        body: `Task "${task.name}" status updated to ${newStatus}`,
-        data: { taskId: task.id },
-      });
+    if (user?.expoPushToken) {
+      console.log(`Notifying user ${userId} with token: ${user.expoPushToken}`);
+      await sendExpoNotification({ ...payload, to: user.expoPushToken });
+    } else {
+      console.log(`No push token found for user ${userId}`);
     }
   },
 
+  notifyTaskStatusChange: async (taskId: number, newStatus: task_status) => {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      name: true,
+      user: { select: { id: true, expoPushToken: true } },
+      chore: { select: { houseId: true } },
+    },
+  });
+
+  if (!task || !task.user || !task.user.expoPushToken) {
+    console.log(`Task ${taskId} or user not found, or no push token`);
+    return;
+  }
+
+  const statusMsg = {
+    PENDING: 'has been marked as pending.',
+    REVIEWING: 'is under review.',
+    APPROVED: 'has been approved 🎉',
+    REJECTED: 'was rejected. Please review and resubmit.',
+  }[newStatus];
+
+  const message: PartialNotificationPayload = {
+    title: 'Task Update',
+    body: `Your task "${task.name}" ${statusMsg}`,
+    data: { taskId: task.id },
+  };
+
+  console.log(`Notifying task ${taskId} status change to ${newStatus}`);
+  await notificationService.notifyUserById(task.user.id, message);
+
+  if (task.chore?.houseId) {
+    console.log(`Notifying managers for house ${task.chore.houseId}`);
+    await notifyHouseManagers(task.chore.houseId, {
+      title: 'Resident Task Update',
+      body: `Task "${task.name}" status updated to ${newStatus}`,
+      data: { taskId: task.id },
+    });
+  }
+},
+
   notifyNewTaskAssigned: async (userId: number, taskName: string) => {
     console.log(`Notifying user ${userId} about new task: ${taskName}`);
-    await notifyUserById(userId, {
+    await notificationService.notifyUserById(userId, {
       title: 'New Task Assigned',
       body: `You have been assigned a new task: "${taskName}"`,
       data: {},
@@ -206,7 +207,7 @@ export const notificationService = {
     }
 
     console.log(`Notifying user ${task.user.id} about feedback on task ${taskId}`);
-    await notifyUserById(task.user.id, {
+    await notificationService.notifyUserById(task.user.id, {
       title: 'Feedback Received',
       body: `You have new feedback on your task: "${task.name}"`,
       data: { taskId },
@@ -215,7 +216,7 @@ export const notificationService = {
 
   notifyChoreUpdate: async (userId: number, choreName: string) => {
     console.log(`Notifying user ${userId} about chore update: ${choreName}`);
-    await notifyUserById(userId, {
+    await notificationService.notifyUserById(userId, {
       title: 'Chore Updated',
       body: `Your chore assignment "${choreName}" has been updated.`,
       data: {},
@@ -281,7 +282,7 @@ export const notificationService = {
       }
 
       console.log(`Notifying user ${userId} about being added to chat ${chatId}`);
-      await notifyUserById(userId, {
+      await notificationService.notifyUserById(userId, {
         title: 'Added to Chat',
         body: `You have been added to ${chat.isGroup ? 'group' : 'a'} chat: "${chat.name || 'Chat'}"`,
         data: { chatId },

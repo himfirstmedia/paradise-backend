@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import bcrypt from "bcrypt";
-import { sendExpoNotification } from "./notification";
+import sendExpoNotification from "./notification";
 const SALT_ROUNDS = 10;
 
 export const userService = {

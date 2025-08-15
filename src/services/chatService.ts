@@ -2,7 +2,7 @@ import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
 export const chatService = {
-  createChat: async (data: Prisma.chatCreateInput) => {
+  createChat: async (data: Prisma.ChatCreateInput) => {
     const createdChat = await prisma.chat.create({
       data,
       include: {
@@ -56,7 +56,7 @@ export const chatService = {
     }
   },
 
-  createMessage: (data: Prisma.messageCreateInput) => {
+  createMessage: (data: Prisma.MessageCreateInput) => {
     return prisma.message.create({
       data,
       include: { sender: true }

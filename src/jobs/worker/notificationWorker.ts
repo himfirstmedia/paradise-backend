@@ -11,7 +11,7 @@ new Worker("notificationQueue", async job => {
       const users = await prisma.user.findMany({
         where: { role: "RESIDENT" },
         include: {
-          taskLogs: {
+          ChoreLogs: {
             where: {
               date: {
                 gte: dayjs().subtract(7, "day").startOf("day").toDate(),
@@ -22,7 +22,7 @@ new Worker("notificationQueue", async job => {
       });
 
       for (const user of users) {
-        const minutes = user.taskLogs.reduce((sum, log) => sum + log.minutes, 0);
+        const minutes = user.ChoreLogs.reduce((sum, log) => sum + log.minutes, 0);
         const hours = (minutes / 60).toFixed(1);
 
         console.log(`[Notification] ${user.name} completed ${hours} hours this week`);
@@ -34,7 +34,7 @@ new Worker("notificationQueue", async job => {
     case "carryOverPeriod":
       const periodId = job.data.periodId;
 
-      const logs = await prisma.taskLog.findMany({
+      const logs = await prisma.choreLog.findMany({
         where: {
           workPeriodId: periodId,
         },

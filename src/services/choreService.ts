@@ -3,38 +3,32 @@ import { Prisma } from "@prisma/client";
 
 export const choreService = {
   
-  create: (data: Prisma.choreCreateInput) => {
+  create: (data: Prisma.ChoreCreateInput) => {
     return prisma.chore.create({ data });
   },
 
-  
   findAll: () => {
-    return prisma.chore.findMany({
-      include: {
-        house: true,
-        tasks: true,
-        currentUser: true, 
-      },
-    });
-  },
-
+  return prisma.chore.findMany({
+    include: {
+      house: true,
+      currentUsers: true,
+    },
+  });
+},
   
   findById: (id: number) => {
-    console.log("🔍 [choreService] findById called with id:", id);
     return prisma.chore.findUnique({
       where: { id },
       include: {
         house: true,
-        tasks: true,
-        currentUser: true,
+        currentUsers: true,
       },
     });
   },
 
-  
-  update: (id: number, data: Partial<Prisma.choreUpdateInput> & { houseId?: number }) => {
+  update: (id: number, data: Partial<Prisma.ChoreUpdateInput> & { houseId?: number, isPrimary?: boolean }) => {
     const { houseId, ...rest } = data;
-    const updateData: Prisma.choreUpdateInput = { ...rest };
+    const updateData: Prisma.ChoreUpdateInput = { ...rest };
 
     if (houseId !== undefined) {
       updateData.house = { connect: { id: houseId } };
@@ -46,34 +40,35 @@ export const choreService = {
     });
   },
 
-  
   delete: (id: number) => {
     return prisma.chore.delete({
       where: { id },
     });
   },
 
-  
   findByHouse: (houseId: number) => {
     return prisma.chore.findMany({
       where: { houseId },
-      include: { tasks: true },
+      include: {
+        house: true,
+        currentUsers: true,
+      },
     });
   },
 
   
   findDetailedById: (id: number) => {
-    return prisma.chore.findUnique({
-      where: { id },
-      include: {
-        tasks: {
-          include: {
-            user: true,
-          },
+  return prisma.chore.findUnique({
+    where: { id },
+    include: {
+      ChoreLogs: { 
+        include: {
+          user: true,
         },
-        house: true,
-        currentUser: true,
       },
-    });
-  },
+      house: true,
+      currentUsers: true,
+    },
+  });
+},
 };

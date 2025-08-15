@@ -1,8 +1,8 @@
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../config/cloudinary"; // Your config file
+import cloudinary from "../config/cloudinary"; // Your config fil
 
-export const upload = (type: "chats" | "tasks") => {
+export const upload = (type: "chats" | "chores") => {
   const storage = new CloudinaryStorage({
     cloudinary,
     params: async (req, file) => ({

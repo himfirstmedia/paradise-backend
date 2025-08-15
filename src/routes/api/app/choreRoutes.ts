@@ -5,12 +5,17 @@ import { catchAsync } from "utils/catch_error";
 
 const router = Router();
 
-router.post("/", catchAsync(choreController.create));
+// --- Chore-specific routes ---
+router.post("/", upload("chores").single("image"), catchAsync(choreController.create));
 router.get("/", catchAsync(choreController.findAll));
-router.get("/:id", catchAsync(choreController.findById));
 router.get("/house/:houseId", catchAsync(choreController.findByHouse));
+
+// --- Summary route should be before any :id routes ---
+router.get("/summary", catchAsync(choreController.getChoreSummary));
+
 router.get("/:id/details", catchAsync(choreController.findDetailedById));
-router.put("/:id", catchAsync(choreController.update));
+router.get("/:id", catchAsync(choreController.findById));
+router.put("/:id", upload("chores").single("image"), catchAsync(choreController.update));
 router.delete("/:id", catchAsync(choreController.delete));
 
 

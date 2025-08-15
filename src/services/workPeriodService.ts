@@ -1,30 +1,19 @@
-import prisma from "config/prisma";
+// workPeriodService.ts
+import prisma from "../config/prisma";
+import dayjs from "dayjs";
 
-export const ensureUserWorkPeriodsForHouse = async (houseId: number, workPeriodId: number) => {
-  const users = await prisma.user.findMany({
-    where: { houseId },
-  });
+export const workPeriodService = {
+  configureForUser: async (userId: number) => {
+    const start = dayjs().startOf("month").toDate();
+    const end = dayjs().endOf("month").toDate();
 
-  for (const user of users) {
-    const existing = await prisma.userWorkPeriod.findUnique({
-      where: {
-        userId_workPeriodId: {
-          userId: user.id,
-          workPeriodId,
-        },
+    return prisma.workPeriod.create({
+      data: {
+        user: { connect: { id: userId } },
+        name: `Work Period ${dayjs().format("MMMM YYYY")}`,
+        startDate: start,
+        endDate: end,
       },
     });
-
-    if (!existing) {
-      await prisma.userWorkPeriod.create({
-        data: {
-          userId: user.id,
-          workPeriodId,
-          carryOverMinutes: 0,
-          requiredMinutes: 0,
-          completedMinutes: 0,
-        },
-      });
-    }
-  }
+  },
 };

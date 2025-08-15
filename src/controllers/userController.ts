@@ -21,9 +21,21 @@ export const userController = {
   },
 
   create: async (req: Request, res: Response) => {
-    const user = await userService.create(req.body);
-    res.status(201).json(user);
-  },
+  const { periodStart, periodEnd, ...rest } = req.body;
+
+  if (periodStart && periodEnd && new Date(periodEnd) < new Date(periodStart)) {
+    return res.status(400).json({ message: "Period end cannot be before start." });
+  }
+
+  const user = await userService.create({
+    ...rest,
+    periodStart: periodStart ? new Date(periodStart) : null,
+    periodEnd: periodEnd ? new Date(periodEnd) : null,
+  });
+
+  res.status(201).json(user);
+},
+
 
   findAll: async (_: Request, res: Response) => {
     const users = await userService.findAll();

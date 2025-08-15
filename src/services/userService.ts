@@ -6,30 +6,37 @@ const SALT_ROUNDS = 10;
 
 export const userService = {
   create: async (data: any) => {
-    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-    return prisma.user.create({
-      data: {
-        ...data,
-        password: hashedPassword,
-      },
-    });
-  },
+  const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+  return prisma.user.create({
+    data: {
+      ...data,
+      periodStart: data.periodStart ? new Date(data.periodStart) : null,
+      periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
+      password: hashedPassword,
+    },
+  });
+},
+
   findAll: () =>
     prisma.user.findMany({
       include: {
-        task: true,
+        chores: true,
         house: true,
       },
     }),
   findById: (id: number) =>
     prisma.user.findUnique({
       where: { id },
-      include: { task: true, house: true },
+      include: { chores: true, house: true },
     }),
   update: async (id: number, data: any) => {
     return prisma.user.update({
       where: { id },
-      data,
+      data: {
+      ...data,
+      periodStart: data.periodStart ? new Date(data.periodStart) : null,
+      periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
+    },
     });
   },
 
@@ -37,7 +44,7 @@ export const userService = {
   login: async (email: string, password: string) => {
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { task: true, house: true },
+      include: { chores: true, house: true },
     });
 
     if (!user) return null;
@@ -49,10 +56,3 @@ export const userService = {
     return user;
   },
 };
-// Example usage:
-// sendExpoNotification(
-//   "ExponentPushToken[gOWXGSIZ0n-NcexQgBXrAv]",
-//   "Hello!",
-//   "This is a test notification.",
-//   { someData: "value" }
-// );

@@ -2,39 +2,35 @@ import prisma from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
 export const taskService = {
-  create: (data: Prisma.taskCreateInput) => {
-    return prisma.task.create({ data });
+  create: (data: Prisma.ChoreCreateInput) => {
+    return prisma.chore.create({ data });
   },
 
   findAll: () => {
-    return prisma.task.findMany({
+    return prisma.chore.findMany({
       where: {
         OR: [
-          // Include tasks without any chore association
-          { choreId: null },
-          // Include tasks where the chore isn't assigned to any user
-          {
-            chore: {
-              currentUser: null,
-            },
+          { 
+            userId: null, 
+            currentUsers: null 
           },
         ],
       },
       include: {
         user: true,
-        chore: true,
+        currentUsers: true,
       },
     });
   },
 
   findById: (id: number) => {
     console.log("🔍 [taskService] findById called with id: ", id);
-    return prisma.task.findUnique({ where: { id } });
+    return prisma.chore.findUnique({ where: { id } });
   },
 
-  update: (id: number, data: Partial<Prisma.taskUpdateInput> & { userId?: number | null }) => {
+  update: (id: number, data: Partial<Prisma.ChoreUpdateInput> & { userId?: number | null }) => {
     const { userId, ...rest } = data;
-    const updateData: Prisma.taskUpdateInput = { ...rest };
+    const updateData: Prisma.ChoreUpdateInput = { ...rest };
 
     if (userId !== undefined) {
       updateData.user = userId === null
@@ -42,28 +38,15 @@ export const taskService = {
         : { connect: { id: userId } };
     }
 
-    return prisma.task.update({
+    return prisma.chore.update({
       where: { id },
       data: updateData,
     });
   },
 
   delete: (id: number) => {
-    return prisma.task.delete({ where: { id } });
+    return prisma.chore.delete({ where: { id } });
   },
 
-//   findTasksByUserAndDateRange: (userId: number, startDate: Date, endDate: Date) => {
-//   console.log("🔍 [taskService] Finding tasks for user:", userId, "from:", startDate, "to:", endDate);
-
-//   return prisma.task.findMany({
-//     where: {
-//       userId,
-//       startDate: {
-//         gte: startDate,
-//         lte: endDate,
-//       },
-//     },
-//   });
-// },
 
 };

@@ -110,7 +110,7 @@ export const chatController = {
       }
 
       // Create new chat
-      const chatData: Prisma.chatCreateInput = {
+      const chatData: Prisma.ChatCreateInput = {
         name: chatName ?? "Group Chat",
         isGroup,
         users: {

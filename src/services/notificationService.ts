@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import prisma from 'config/prisma';
-import { task_status, user_role } from '@prisma/client';
+import { Chore_Status } from '@prisma/client';
 
 interface NotificationPayload {
   to: string | string[];
@@ -107,7 +107,7 @@ const notifyHouseManagers = async (houseId: number, payload: PartialNotification
   const managers = await prisma.user.findMany({
     where: {
       role: {
-        in: ['RESIDENT_MANAGER', 'FACILITY_MANAGER'],
+        in: ['MANAGER'],
       },
       assignments: {
         some: {
@@ -144,47 +144,59 @@ export const notificationService = {
     }
   },
 
-  notifyTaskStatusChange: async (taskId: number, newStatus: task_status) => {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: {
-      id: true,
-      name: true,
-      user: { select: { id: true, expoPushToken: true } },
-      chore: { select: { houseId: true } },
-    },
-  });
+  notifyTaskStatusChange: async (choreId: number, newStatus: Chore_Status) => {
+    try {
+      const chore = await prisma.chore.findUnique({
+        where: { id: choreId },
+        select: {
+          id: true,
+          name: true,
+          user: { select: { id: true, expoPushToken: true } },
+          houseId: true, // Corrected field name
+        },
+      });
 
-  if (!task || !task.user || !task.user.expoPushToken) {
-    console.log(`Task ${taskId} or user not found, or no push token`);
-    return;
-  }
+      if (!chore) {
+        console.log(`Chore ${choreId} not found`);
+        return;
+      }
 
-  const statusMsg = {
-    PENDING: 'has been marked as pending.',
-    REVIEWING: 'is under review.',
-    APPROVED: 'has been approved 🎉',
-    REJECTED: 'was rejected. Please review and resubmit.',
-  }[newStatus];
+      const statusMsg = {
+        PENDING: 'has been marked as pending.',
+        REVIEWING: 'is under review.',
+        APPROVED: 'has been approved 🎉',
+        REJECTED: 'was rejected. Please review and resubmit.',
+      }[newStatus];
 
-  const message: PartialNotificationPayload = {
-    title: 'Task Update',
-    body: `Your task "${task.name}" ${statusMsg}`,
-    data: { taskId: task.id },
-  };
+      const message: PartialNotificationPayload = {
+        title: 'Task Update',
+        body: `Your task "${chore.name}" ${statusMsg}`,
+        data: { choreId: chore.id },
+      };
 
-  console.log(`Notifying task ${taskId} status change to ${newStatus}`);
-  await notificationService.notifyUserById(task.user.id, message);
+      console.log(`Notifying chore ${choreId} status change to ${newStatus}`);
+      
+      // Notify assigned user
+      if (chore.user?.expoPushToken) {
+        await sendExpoNotification({
+          ...message,
+          to: chore.user.expoPushToken
+        });
+      }
 
-  if (task.chore?.houseId) {
-    console.log(`Notifying managers for house ${task.chore.houseId}`);
-    await notifyHouseManagers(task.chore.houseId, {
-      title: 'Resident Task Update',
-      body: `Task "${task.name}" status updated to ${newStatus}`,
-      data: { taskId: task.id },
-    });
-  }
-},
+      // Notify house managers
+      if (chore.houseId) {
+        console.log(`Notifying managers for house ${chore.houseId}`);
+        await notifyHouseManagers(chore.houseId, {
+          title: 'Resident Task Update',
+          body: `Task "${chore.name}" status updated to ${newStatus}`,
+          data: { choreId: chore.id },
+        });
+      }
+    } catch (error) {
+      console.error('Error in notifyTaskStatusChange:', error);
+    }
+  },
 
   notifyNewTaskAssigned: async (userId: number, taskName: string) => {
     console.log(`Notifying user ${userId} about new task: ${taskName}`);
@@ -195,23 +207,27 @@ export const notificationService = {
     });
   },
 
-  notifyFeedback: async (taskId: number, fromUserId: number) => {
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      include: { user: true },
-    });
+  notifyFeedback: async (choreId: number, fromUserId: number) => {
+    try {
+      const chore = await prisma.chore.findUnique({
+        where: { id: choreId },
+        include: { user: true },
+      });
 
-    if (!task || !task.user) {
-      console.log(`Task ${taskId} or user not found`);
-      return;
+      if (!chore?.user) {
+        console.log(`Chore ${choreId} has no assigned user`);
+        return;
+      }
+
+      console.log(`Notifying user ${chore.user.id} about feedback on chore ${choreId}`);
+      await notificationService.notifyUserById(chore.user.id, {
+        title: 'Feedback Received',
+        body: `You have new feedback on your chore: "${chore.name}"`,
+        data: { choreId },
+      });
+    } catch (error) {
+      console.error('Error in notifyFeedback:', error);
     }
-
-    console.log(`Notifying user ${task.user.id} about feedback on task ${taskId}`);
-    await notificationService.notifyUserById(task.user.id, {
-      title: 'Feedback Received',
-      body: `You have new feedback on your task: "${task.name}"`,
-      data: { taskId },
-    });
   },
 
   notifyChoreUpdate: async (userId: number, choreName: string) => {
@@ -224,50 +240,78 @@ export const notificationService = {
   },
 
   notifyNewMessage: async (chatId: number, messageId: number, senderId: number) => {
-    try {
-      const message = await prisma.message.findUnique({
-        where: { id: messageId },
-        include: {
-          chat: {
-            include: {
-              users: {
-                include: {
-                  user: {
-                    select: { id: true, expoPushToken: true, name: true },
-                  },
+  try {
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        chat: {
+          include: {
+            users: {
+              include: {
+                user: {
+                  select: { id: true, expoPushToken: true, name: true },
                 },
               },
             },
+            house: { select: { id: true } },
           },
-          sender: { select: { name: true } },
         },
-      });
+        sender: { select: { name: true } },
+      },
+    });
 
-      if (!message || !message.chat) {
-        console.log(`Message ${messageId} or chat ${chatId} not found`);
-        return;
-      }
-
-      const recipients = message.chat.users
-        .filter(chatUser => chatUser.user.id !== senderId && chatUser.user.expoPushToken)
-        .map(chatUser => chatUser.user);
-      console.log(`Notifying ${recipients.length} users for new message in chat ${chatId}`);
-
-      if (recipients.length > 0) {
-        const tokens = recipients.map(user => user.expoPushToken!);
-        await sendExpoNotification({
-          to: tokens,
-          title: `New Message from ${message.sender.name}`,
-          body: message.content && message.content.length > 50
-            ? `${message.content.slice(0, 47)}...`
-            : message.content || 'New image message',
-          data: { chatId, messageId },
-        });
-      }
-    } catch (error) {
-      console.error('Error notifying new message:', error);
+    if (!message || !message.chat) {
+      console.log(`Message ${messageId} or chat ${chatId} not found`);
+      return;
     }
-  },
+
+    // 1. Notify direct chat participants
+    const directRecipients = message.chat.users
+      .filter(chatUser => chatUser.user.id !== senderId && chatUser.user.expoPushToken)
+      .map(chatUser => chatUser.user);
+
+    console.log(`Notifying ${directRecipients.length} direct users for new message in chat ${chatId}`);
+
+    // 2. Notify house managers if chat is associated with a house
+    let managerRecipients: any[] = [];
+    if (message.chat.house?.id) {
+      const managers = await prisma.user.findMany({
+        where: {
+          role: 'MANAGER',
+          assignments: { some: { houseId: message.chat.house.id } },
+          expoPushToken: { not: null },
+          id: { not: senderId }, // Exclude sender
+          NOT: { 
+            id: { in: directRecipients.map(u => u.id) } // Exclude direct participants
+          }
+        },
+        select: { id: true, expoPushToken: true, name: true },
+      });
+      managerRecipients = managers;
+      console.log(`Found ${managerRecipients.length} managers to notify for house ${message.chat.house.id}`);
+    }
+
+    // Combine both recipient lists
+    const allRecipients = [...directRecipients, ...managerRecipients];
+    const uniqueRecipients = allRecipients.filter(
+      (v, i, a) => a.findIndex(t => t.id === v.id) === i
+    );
+
+    if (uniqueRecipients.length > 0) {
+      const tokens = uniqueRecipients.map(user => user.expoPushToken!);
+      await sendExpoNotification({
+        to: tokens,
+        title: `New Message from ${message.sender.name}`,
+        body: message.content && message.content.length > 50
+          ? `${message.content.slice(0, 47)}...`
+          : message.content || 'New image message',
+        data: { chatId, messageId },
+      });
+    }
+  } catch (error) {
+    console.error('Error notifying new message:', error);
+  }
+},
 
   notifyAddedToChat: async (userId: number, chatId: number) => {
     try {

@@ -205,6 +205,71 @@ export const choreController = {
     }
   },
 
+ assign: async (req: Request, res: Response) => {
+  try {
+    const choreId = Number(req.params.id);
+    const { userId, instruction, isPrimary } = req.body;
+
+    const userExists = await prisma.user.findUnique({
+      where: { id: Number(userId) }
+    });
+    if (!userExists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (isNaN(choreId)) {
+      return res.status(400).json({ error: "Invalid chore ID" });
+    }
+
+    // Get the chore first to check current assignment
+    const existingChore = await choreService.findById(choreId);
+    if (!existingChore) {
+      return res.status(404).json({ error: "Chore not found" });
+    }
+
+    // Update the chore assignment
+    const updateData: any = {
+      user: userId ? { connect: { id: Number(userId) } } : { disconnect: true },
+      status: "PENDING"
+    };
+
+    // Add instruction and isPrimary if provided
+    if (instruction !== undefined) updateData.instruction = instruction;
+    if (isPrimary !== undefined) updateData.isPrimary = isPrimary;
+
+    const updatedChore = await choreService.update(choreId, updateData);
+
+    // Send notification if a new chore was assigned
+    if (userId && existingChore.userId !== Number(userId)) {
+      try {
+        await notificationService.notifyNewTaskAssigned(
+          Number(userId), 
+          existingChore.name
+        );
+        
+        // Optional: Notify previous user if they were unassigned
+        if (existingChore.userId) {
+          await notificationService.notifyUserById(existingChore.userId, {
+            title: "Chore Unassigned",
+            body: `You've been unassigned from "${existingChore.name}"`,
+            data: { choreId }
+          });
+        }
+      } catch (notificationError) {
+        console.error("Failed to send assignment notification:", notificationError);
+        // Don't fail the request if notification fails
+      }
+    }
+
+    res.json(updatedChore);
+  } catch (error: any) {
+    console.error("Error assigning chore:", error);
+    res.status(500).json({ 
+      message: error?.message || "Failed to assign chore" 
+    });
+  }
+},
+
   delete: async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);

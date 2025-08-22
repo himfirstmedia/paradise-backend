@@ -198,11 +198,11 @@ export const notificationService = {
     }
   },
 
-  notifyNewTaskAssigned: async (userId: number, taskName: string) => {
-    console.log(`Notifying user ${userId} about new task: ${taskName}`);
+  notifyNewTaskAssigned: async (userId: number, choreName: string) => {
+    console.log(`Notifying user ${userId} about new task: ${choreName}`);
     await notificationService.notifyUserById(userId, {
       title: 'New Task Assigned',
-      body: `You have been assigned a new task: "${taskName}"`,
+      body: `You have been assigned a new task: "${choreName}"`,
       data: {},
     });
   },
